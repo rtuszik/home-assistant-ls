@@ -1,144 +1,236 @@
-<h1 align="center">
+# Home Assistant Language Server
 
-<img src="https://raw.githubusercontent.com/keesschollaart81/vscode-home-assistant/dev/assets/header.png" alt="Home Assistant Config Helper for Visual Studio Code"/>
+A standalone Language Server Protocol (LSP) implementation for Home Assistant configuration files. Provides intelligent completions, validation, hover information, and more for YAML configuration files in any LSP-compatible editor.
 
-</h1>
+## ✨ Features
 
-# Getting started
+- **Smart completions** for entity IDs, service calls, areas, devices, floors, and labels
+- **Real-time validation** of entities, services, areas, devices, and configuration
+- **Hover information** with entity states, service documentation, and template previews
+- **Go to definition** for includes, scripts, and secrets
+- **Template rendering** with live preview and validation
+- **YAML formatting** and comprehensive schema validation
+- **Universal compatibility** with Neovim, Emacs, Vim, VS Code, and other LSP clients
 
-## VS Code Extension
+## 🚀 Quick Start
 
-1. Install via the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=keesschollaart.vscode-home-assistant)
+### Installation
 
-2. Open your (local copy of the) Home Assistant Configuration with VS Code
+```bash
+npm install -g home-assistant-language-server
+```
 
-3. Configure the connection to Home Assistant via the HA Section in the VS Code Settings UI
+### Configuration
 
-   More details in [the How-To in the Wiki](https://github.com/keesschollaart81/vscode-home-assistant/wiki/Configure-connection-to-HA)
+Set up your Home Assistant connection using environment variables:
 
-4. Enjoy the features showcased below 👇
+```bash
+export HASS_SERVER="http://homeassistant.local:8123"
+export HASS_TOKEN="your_long_lived_access_token"
+```
 
-5. Continue reading in the Wiki:
+### Getting a Long-Lived Access Token
 
-   - [Configure connection to HA](https://github.com/keesschollaart81/vscode-home-assistant/wiki/Configure-connection-to-HA)
-   - [VS Code Remote SSH](https://github.com/keesschollaart81/vscode-home-assistant/wiki/VS-Code-Remote-SSH)
-   - [Your config, local or remote?](https://github.com/keesschollaart81/vscode-home-assistant/wiki/Your-config,-local-or-remote%3F)
-   - [The troubleshooting guide](https://github.com/keesschollaart1/vscode-home-assistant/wiki/Troubleshooting)
+1. In Home Assistant, go to your profile (click your username)
+2. Scroll down to "Long-Lived Access Tokens"
+3. Click "Create Token" and give it a name
+4. Copy the token for use with the language server
 
-## Standalone Language Server (Neovim, Emacs, etc.)
+## 📝 Editor Setup
 
-For other editors that support the Language Server Protocol, you can use the standalone language server:
+### Neovim (nvim-lspconfig)
 
-1. **Install the language server:**
-   ```bash
-   npm install -g home-assistant-language-server
-   ```
-
-2. **Configure your editor** (see [Language Server documentation](./packages/language-server/README.md) for detailed setup)
-
-3. **Set up Home Assistant connection:**
-   ```bash
-   export HASS_SERVER="http://homeassistant.local:8123"
-   export HASS_TOKEN="your_long_lived_access_token"
-   ```
-
-### Quick Setup Examples
-
-**Neovim with nvim-lspconfig:**
 ```lua
 require('lspconfig').home_assistant_ls.setup{
   cmd = { 'home-assistant-language-server', '--stdio' },
   filetypes = { 'yaml' },
   root_dir = require('lspconfig.util').root_pattern('configuration.yaml'),
+  settings = {}
 }
 ```
 
-**Emacs with lsp-mode:**
+### Neovim (Mason)
+
+```lua
+require('mason-lspconfig').setup({
+  ensure_installed = { 'home_assistant_ls' }
+})
+```
+
+### Emacs (lsp-mode)
+
 ```elisp
+(add-to-list 'lsp-language-id-configuration '(yaml-mode . "yaml"))
 (lsp-register-client
   (make-lsp-client
     :new-connection (lsp-stdio-connection '("home-assistant-language-server" "--stdio"))
     :major-modes '(yaml-mode)
-    :server-id 'home-assistant-ls))
+    :server-id 'home-assistant-ls
+    :root-path (lambda () (locate-dominating-file default-directory "configuration.yaml"))))
 ```
 
-See the [complete language server documentation](./packages/language-server/README.md) for more setup options.
+### Vim (vim-lsp)
 
-# Features
+```vim
+if executable('home-assistant-language-server')
+  au User lsp_setup call lsp#register_server({
+    \ 'name': 'home-assistant-language-server',
+    \ 'cmd': {server_info->['home-assistant-language-server', '--stdio']},
+    \ 'allowlist': ['yaml'],
+    \ 'root_uri': {server_info->lsp#utils#path_to_uri(lsp#utils#find_nearest_parent_file_directory(lsp#utils#get_buffer_path(), 'configuration.yaml'))},
+    \ })
+endif
+```
 
-## Completion for Entity IDs, Actions, Scenes and Triggers
+### VS Code (Generic LSP Client)
 
-When connected with your Home Assistant server, entity IDs and actions will be auto-completed.
+While the [official Home Assistant VS Code extension](https://marketplace.visualstudio.com/items?itemName=keesschollaart.vscode-home-assistant) is recommended, you can use this language server with any generic LSP client extension.
 
-<img src="https://raw.githubusercontent.com/keesschollaart81/vscode-home-assistant/dev/assets/entity_service_completion.gif">
+## ⚙️ Configuration
 
-## Completion & Validation for Configuration & Lovelace Schema
+### Environment Variables (Recommended)
 
-Most of the scheme's of Home Assistant will be validated and things like properties, values and enums will be auto-completed. This extension understands the behaviour of Home Assistant '!include...' behaviour and use this to provide scoped validation for all your files.
+```bash
+export HASS_SERVER="http://homeassistant.local:8123"
+export HASS_TOKEN="your_long_lived_access_token"
+export HASS_IGNORE_CERTIFICATES="false"  # optional, for self-signed certs
+```
 
-<img src="https://raw.githubusercontent.com/keesschollaart81/vscode-home-assistant/dev/assets/schema_validation_completion.gif">
+### Config File
 
-Deprecation Warnings:
+Create `~/.home-assistant-ls.json`:
 
-<img src="https://raw.githubusercontent.com/keesschollaart81/vscode-home-assistant/dev/assets/deprecation-warnings.png">
+```json
+{
+    "homeAssistantUrl": "http://homeassistant.local:8123",
+    "homeAssistantToken": "your_long_lived_access_token",
+    "ignoreCertificates": false
+}
+```
 
-Schema Documentation
+### LSP Initialization Options
 
-<img src="https://raw.githubusercontent.com/keesschollaart81/vscode-home-assistant/dev/assets/schema-documentation.png">
+The language server accepts configuration through LSP `initializationOptions`:
 
-## Go to Definition for Includes
+```json
+{
+    "vscode-home-assistant": {
+        "hostUrl": "http://homeassistant.local:8123",
+        "longLivedAccessToken": "your_token_here",
+        "ignoreCertificates": false
+    }
+}
+```
 
-Easy navigate between your files references via the different !include... tags using 'f12' / 'Go to Definition'.
+## 🔧 Usage
 
-<img src="https://raw.githubusercontent.com/keesschollaart81/vscode-home-assistant/dev/assets/go_to_definition.gif">
+The language server automatically activates when you open YAML files in a Home Assistant configuration directory (detected by the presence of `configuration.yaml`).
 
-## Snippets
+### Available Features
 
-Snippets allow you to create commonly used data structures very quickly.
+- **Entity ID completions**: Real-time suggestions from your Home Assistant instance
+- **Service completions**: Complete service calls with parameter documentation
+- **Validation warnings**: Unknown entities, services, areas, devices, or configuration errors
+- **Hover tooltips**: Entity states, attributes, and service documentation
+- **Template preview**: Live rendering of Jinja2 templates on hover
+- **Go to definition**: Navigate to included files, scripts, and secrets
+- **Smart validation**: Context-aware validation for Home Assistant YAML files
 
-<img src="https://raw.githubusercontent.com/keesschollaart81/vscode-home-assistant/dev/assets/snippet.gif">
+### Supported File Types
 
-## Commands
+- `*.yaml` and `*.yml` files in Home Assistant configuration directories
+- All Home Assistant configuration sections (automation, script, sensor, etc.)
+- Lovelace dashboard configurations
+- Blueprint files
 
-Commands allow you to quickly interact with Home Assistant! Find them using Cmd+shift+P and type 'Home Assistant'
+## 🛠️ Development
 
-## Render templates
+### Building from Source
 
-Evaluate jinja templates via Home Assistant's API and see how they would render.
+```bash
+git clone https://github.com/home-assistant/language-server
+cd home-assistant-language-server
+npm install
+npm run build
+```
 
-![image](https://user-images.githubusercontent.com/6755359/69496084-6b089d80-0ece-11ea-8496-50251b91732f.png)
+### Testing
 
-# Contribution
+```bash
+# Test the CLI
+./bin/home-assistant-ls --help
 
-- [How to update the schemas](https://github.com/keesschollaart81/vscode-home-assistant/wiki/HowTo:-Update-the-schema's)
-- [Local Development](https://github.com/keesschollaart81/vscode-home-assistant/wiki/Local-development-of-this-Extension)
+# Test with a real Home Assistant instance
+export HASS_SERVER="http://your-ha-instance:8123"
+export HASS_TOKEN="your_token"
+./bin/home-assistant-ls --stdio
+```
 
-# Release Notes
+### Project Structure
 
-Read all the recent changes in the [GitHub releases section](https://github.com/keesschollaart81/vscode-home-assistant/releases)
+```
+├── src/
+│   ├── server.ts              # Main LSP server
+│   ├── fileAccessor.ts        # File system operations
+│   ├── bin/                   # CLI entry point
+│   └── language-service/      # Core language service logic
+├── bin/                       # Executable CLI script
+├── examples/                  # Editor configuration examples
+└── dist/                      # Compiled JavaScript (after build)
+```
 
-# Feedback / Ideas
+## 🚧 Troubleshooting
 
-Create an [issue](https://github.com/keesschollaart81/vscode-home-assistant/issues/new/choose), reach out to me on [Twitter](https://twitter.com/keesschollaart) or the [Home Assistant Discord](https://discord.gg/c5DvZ4e).
+### Connection Issues
 
-# Things to do / up for grabs
+1. **Verify Home Assistant URL**: Ensure it's reachable from your development machine
+2. **Test your token**:
+    ```bash
+    curl -X GET \
+      -H "Authorization: Bearer YOUR_TOKEN" \
+      -H "Content-Type: application/json" \
+      http://homeassistant.local:8123/api/
+    ```
+3. **Check logs**: Look for language server output in your editor's LSP logs
 
-- [ ] Go to Definition for entities, scripts and automations
-- [ ] Check local config with HA Server
+### Performance
 
-# Telemetry
+- The language server caches Home Assistant data for performance
+- Large instances (>1000 entities) may take longer to load initially
+- Consider using a dedicated token for the language server
 
-This extension collects telemetry data to help us build a better experience for
-using VS Code with Home Assistant. We use [vscode-extension-telemetry](https://github.com/Microsoft/vscode-extension-telemetry),
-which reports the following data:
+### Configuration Not Loading
 
-- Extension name
-- Extension version
-- Machine ID and session ID from VS Code
-- Operating system
-- Platform version
+1. Ensure `configuration.yaml` exists in your project root
+2. Check workspace detection in LSP logs
+3. Verify file permissions on configuration files
 
-Additionally, if the language server fails to activate, we report the diagnostic
-data the language server produces. The extension respects the `telemetry.enableTelemetry`
-setting, which you can learn more about at VS Code's
-[telemetry FAQ](https://code.visualstudio.com/docs/supporting/faq#_how-to-disable-telemetry-reporting).
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🔗 Related Projects
+
+- [Home Assistant](https://www.home-assistant.io/) - Open source home automation platform
+- [YAML Language Server](https://github.com/redhat-developer/yaml-language-server) - Underlying YAML language support
+- [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) - Protocol specification
+
+## 📊 Supported Editors
+
+| Editor       | Support       | Setup Guide                                                |
+| ------------ | ------------- | ---------------------------------------------------------- |
+| Neovim       | ✅ Full       | [examples/nvim-lspconfig.lua](examples/nvim-lspconfig.lua) |
+| Emacs        | ✅ Full       | [Setup Guide](#emacs-lsp-mode)                             |
+| Vim          | ✅ Full       | [Setup Guide](#vim-vim-lsp)                                |
+| VS Code      | ✅ Compatible | Use generic LSP client                                     |
+| Sublime Text | ✅ Compatible | Use LSP package                                            |
+| Atom         | ✅ Compatible | Use atom-languageclient                                    |
+
+---
+
+**Made with ❤️ for the Home Assistant community**
+
