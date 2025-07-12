@@ -1,0 +1,1 @@
+{"version":3,"file":"definition.d.ts","sourceRoot":"","sources":["../../../src/language-service/definition/definition.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,UAAU,EAAE,MAAM,gCAAgC,CAAC;AAE5D,MAAM,WAAW,kBAAkB;IACjC,YAAY,CAAC,IAAI,EAAE,MAAM,EAAE,GAAG,EAAE,MAAM,GAAG,OAAO,CAAC,UAAU,EAAE,CAAC,CAAC;CAChE"}

@@ -6,6 +6,8 @@
 
 # Getting started
 
+## VS Code Extension
+
 1. Install via the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=keesschollaart.vscode-home-assistant)
 
 2. Open your (local copy of the) Home Assistant Configuration with VS Code
@@ -21,7 +23,46 @@
    - [Configure connection to HA](https://github.com/keesschollaart81/vscode-home-assistant/wiki/Configure-connection-to-HA)
    - [VS Code Remote SSH](https://github.com/keesschollaart81/vscode-home-assistant/wiki/VS-Code-Remote-SSH)
    - [Your config, local or remote?](https://github.com/keesschollaart81/vscode-home-assistant/wiki/Your-config,-local-or-remote%3F)
-   - [The troubleshooting guide](https://github.com/keesschollaart81/vscode-home-assistant/wiki/Troubleshooting)
+   - [The troubleshooting guide](https://github.com/keesschollaart1/vscode-home-assistant/wiki/Troubleshooting)
+
+## Standalone Language Server (Neovim, Emacs, etc.)
+
+For other editors that support the Language Server Protocol, you can use the standalone language server:
+
+1. **Install the language server:**
+   ```bash
+   npm install -g home-assistant-language-server
+   ```
+
+2. **Configure your editor** (see [Language Server documentation](./packages/language-server/README.md) for detailed setup)
+
+3. **Set up Home Assistant connection:**
+   ```bash
+   export HASS_SERVER="http://homeassistant.local:8123"
+   export HASS_TOKEN="your_long_lived_access_token"
+   ```
+
+### Quick Setup Examples
+
+**Neovim with nvim-lspconfig:**
+```lua
+require('lspconfig').home_assistant_ls.setup{
+  cmd = { 'home-assistant-language-server', '--stdio' },
+  filetypes = { 'yaml' },
+  root_dir = require('lspconfig.util').root_pattern('configuration.yaml'),
+}
+```
+
+**Emacs with lsp-mode:**
+```elisp
+(lsp-register-client
+  (make-lsp-client
+    :new-connection (lsp-stdio-connection '("home-assistant-language-server" "--stdio"))
+    :major-modes '(yaml-mode)
+    :server-id 'home-assistant-ls))
+```
+
+See the [complete language server documentation](./packages/language-server/README.md) for more setup options.
 
 # Features
 

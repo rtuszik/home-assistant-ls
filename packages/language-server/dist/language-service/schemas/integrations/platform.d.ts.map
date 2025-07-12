@@ -1,0 +1,1 @@
+{"version":3,"file":"platform.d.ts","sourceRoot":"","sources":["../../../../src/language-service/schemas/integrations/platform.ts"],"names":[],"mappings":"AAAA;;GAEG;AAEH,OAAO,EAAE,UAAU,EAAE,MAAM,UAAU,CAAC;AAEtC,MAAM,WAAW,cAAc;IAC7B;;OAEG;IACH,QAAQ,EAAE,MAAM,CAAC;IAEjB;;;OAGG;IACH,gBAAgB,CAAC,EAAE,MAAM,CAAC;IAE1B;;;OAGG;IACH,aAAa,CAAC,EAAE,UAAU,CAAC;CAC5B"}
