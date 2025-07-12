@@ -70,8 +70,8 @@ git commit -m "sync: Update from upstream vscode-home-assistant"
 Always test after syncing:
 
 ```bash
-# Build test
-npm run build
+# Build test (bun recommended)
+bun run build  # or npm run build
 
 # CLI test
 ./bin/home-assistant-ls --help

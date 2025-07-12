@@ -17,7 +17,11 @@ A standalone Language Server Protocol (LSP) implementation for Home Assistant co
 ### Installation
 
 ```bash
+# Using npm
 npm install -g home-assistant-language-server
+
+# Using bun (recommended)
+bun install -g home-assistant-language-server
 ```
 
 ### Configuration
@@ -150,6 +154,12 @@ The language server automatically activates when you open YAML files in a Home A
 ```bash
 git clone https://github.com/home-assistant/language-server
 cd home-assistant-language-server
+
+# Using bun (recommended)
+bun install
+bun run build
+
+# Or using npm
 npm install
 npm run build
 ```
@@ -164,6 +174,9 @@ npm run build
 export HASS_SERVER="http://your-ha-instance:8123"
 export HASS_TOKEN="your_token"
 ./bin/home-assistant-ls --stdio
+
+# Test the build
+bun run build  # or npm run build
 ```
 
 ### Project Structure

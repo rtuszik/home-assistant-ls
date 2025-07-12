@@ -92,15 +92,25 @@ for component in "${STANDALONE_COMPONENTS[@]}"; do
   fi
 done
 
+# Detect package manager
+PKG_MANAGER="npm"
+if command -v bun >/dev/null 2>&1 && [ -f "bun.lockb" ]; then
+  PKG_MANAGER="bun"
+elif [ -f "package-lock.json" ]; then
+  PKG_MANAGER="npm"
+elif [ -f "yarn.lock" ]; then
+  PKG_MANAGER="yarn"
+fi
+
 # Test 6: Build test
 echo ""
-echo "Test 6: Build process"
+echo "Test 6: Build process ($PKG_MANAGER)"
 echo "---------------------"
-if npm run build >/dev/null 2>&1; then
+if $PKG_MANAGER run build >/dev/null 2>&1; then
   echo "✅ Build successful"
 else
   echo "❌ Build failed"
-  echo "Run 'npm run build' for details"
+  echo "Run '$PKG_MANAGER run build' for details"
   exit 1
 fi
 

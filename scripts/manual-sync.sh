@@ -77,13 +77,23 @@ if ! ./scripts/sync-upstream.sh; then
 fi
 
 # Test the build
+# Detect package manager
+PKG_MANAGER="npm"
+if command -v bun >/dev/null 2>&1 && [ -f "bun.lockb" ]; then
+  PKG_MANAGER="bun"
+elif [ -f "package-lock.json" ]; then
+  PKG_MANAGER="npm"
+elif [ -f "yarn.lock" ]; then
+  PKG_MANAGER="yarn"
+fi
+
 echo ""
 echo "🧪 Testing build..."
-if npm run build >/dev/null 2>&1; then
+if $PKG_MANAGER run build >/dev/null 2>&1; then
   echo "✅ Build successful"
 else
   echo "⚠️  Build failed - you may need to fix compatibility issues"
-  echo "   Run 'npm run build' to see detailed errors"
+  echo "   Run '$PKG_MANAGER run build' to see detailed errors"
 fi
 
 # Test CLI
@@ -104,7 +114,7 @@ echo "1. Review changes:"
 echo "   git diff --cached"
 echo ""
 echo "2. Test thoroughly:"
-echo "   npm run build"
+echo "   $PKG_MANAGER run build"
 echo "   ./bin/home-assistant-ls --help"
 echo ""
 echo "3. Test with real Home Assistant (optional):"

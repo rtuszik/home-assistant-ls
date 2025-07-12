@@ -27,14 +27,13 @@ jobs:
                   fetch-depth: 0
                   token: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Setup Node.js
-              uses: actions/setup-node@v4
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v1
               with:
-                  node-version: "18"
-                  cache: "npm"
+                  bun-version: latest
 
             - name: Install dependencies
-              run: npm ci
+              run: bun install
 
             - name: Make scripts executable
               run: chmod +x scripts/*.sh
@@ -62,7 +61,7 @@ jobs:
             - name: Test build after sync
               if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
               run: |
-                  npm run build
+                  bun run build
 
             - name: Test CLI after sync
               if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
