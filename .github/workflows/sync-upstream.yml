@@ -79,7 +79,7 @@ jobs:
 
             - name: Create Pull Request
               if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
-              uses: peter-evans/create-pull-request@v5
+              uses: peter-evans/create-pull-request@v7
               with:
                   token: ${{ secrets.GITHUB_TOKEN }}
                   title: "sync: Update from upstream VS Code extension"
