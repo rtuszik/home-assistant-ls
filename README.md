@@ -96,7 +96,6 @@ Auto-synced with upstream [vscode-home-assistant](https://github.com/keesscholla
 
 - **Automated sync**: GitHub Actions runs weekly to detect upstream changes
 - **Preserved customizations**: Standalone server features remain intact
-- See [SYNC_STRATEGY.md](SYNC_STRATEGY.md) for details
 
 ## Contributing
 
@@ -106,4 +105,3 @@ Auto-synced with upstream [vscode-home-assistant](https://github.com/keesscholla
 ## License
 
 MIT License - see [LICENSE.md](LICENSE.md)
-
