@@ -73,6 +73,14 @@ for path in "${SYNC_PATHS[@]}"; do
     
     # Copy from upstream branch
     git checkout $TEMP_BRANCH -- $path 2>/dev/null || echo "⚠️  Path $path not found in upstream"
+    
+    # If upstream has nested src/, flatten it
+    if [ -d "$path/src" ]; then
+      echo "🔄 Flattening nested src structure in $path..."
+      # Move everything from src/ up one level
+      mv "$path/src"/* "$path/"
+      rmdir "$path/src"
+    fi
   else
     echo "⚠️  Path $path not found in upstream"
   fi
