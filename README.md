@@ -1,6 +1,20 @@
 # Home Assistant Language Server
 
+> 🧪 **Alpha Release**: This is a standalone language server extracted from the [vscode-home-assistant](https://github.com/keesschollaart81/vscode-home-assistant) extension. Currently in testing phase (v0.0.1-alpha.1).
+
 A standalone Language Server Protocol (LSP) implementation for Home Assistant configuration files. Provides intelligent completions, validation, hover information, and more for YAML configuration files in any LSP-compatible editor.
+
+## 📊 Status
+
+[![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-0.0.1--alpha.1-yellow)]()
+[![License](https://img.shields.io/badge/license-MIT-blue)]()
+[![Language Server](https://img.shields.io/badge/LSP-compatible-purple)]()
+
+- 🔄 **Sync**: Auto-synced with upstream vscode-home-assistant
+- 🧪 **Testing**: Alpha release - feedback welcome
+- ✅ **Working**: Core LSP features functional
+- 📦 **Package**: Available as `home-assistant-ls`
 
 ## ✨ Features
 
@@ -18,10 +32,17 @@ A standalone Language Server Protocol (LSP) implementation for Home Assistant co
 
 ```bash
 # Using npm
-npm install -g home-assistant-language-server
+npm install -g home-assistant-ls
 
 # Using bun (recommended)
-bun install -g home-assistant-language-server
+bun install -g home-assistant-ls
+
+# For testing/development (from source)
+git clone https://github.com/rtuszik/home-assistant-ls
+cd home-assistant-ls
+bun install && bun run build
+npm pack
+npm install -g home-assistant-ls-0.0.1-alpha.1.tgz
 ```
 
 ### Configuration
@@ -84,6 +105,19 @@ if executable('home-assistant-language-server')
     \ 'root_uri': {server_info->lsp#utils#path_to_uri(lsp#utils#find_nearest_parent_file_directory(lsp#utils#get_buffer_path(), 'configuration.yaml'))},
     \ })
 endif
+```
+
+### Helix
+
+```toml
+# Add to languages.toml
+[[language]]
+name = "yaml"
+language-servers = ["home-assistant-ls", "yaml-language-server"]
+
+[language-server.home-assistant-ls]
+command = "home-assistant-language-server"
+args = ["--stdio"]
 ```
 
 ### VS Code (Generic LSP Client)
@@ -152,8 +186,8 @@ The language server automatically activates when you open YAML files in a Home A
 ### Building from Source
 
 ```bash
-git clone https://github.com/home-assistant/language-server
-cd home-assistant-language-server
+git clone https://github.com/rtuszik/home-assistant-ls
+cd home-assistant-ls
 
 # Using bun (recommended)
 bun install
@@ -218,16 +252,34 @@ bun run build  # or npm run build
 2. Check workspace detection in LSP logs
 3. Verify file permissions on configuration files
 
+## 🔄 Sync Strategy
+
+This standalone language server stays synchronized with the upstream [vscode-home-assistant](https://github.com/keesschollaart81/vscode-home-assistant) extension:
+
+- **Automated sync**: GitHub Actions runs weekly to detect upstream changes
+- **Selective syncing**: Only language service components are updated
+- **Preserved customizations**: Standalone server features remain intact
+- **Manual sync**: `./scripts/manual-sync.sh` for on-demand updates
+
+See [SYNC_STRATEGY.md](SYNC_STRATEGY.md) and [SYNC_USAGE.md](SYNC_USAGE.md) for details.
+
 ## 🤝 Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! This project maintains compatibility with the upstream VS Code extension while adding standalone server capabilities.
+
+### Reporting Issues
+
+Please report issues with:
+1. **Language features**: Upstream to [vscode-home-assistant](https://github.com/keesschollaart81/vscode-home-assistant)
+2. **Standalone server**: Here in this repository
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE.md](LICENSE.md) file for details.
 
 ## 🔗 Related Projects
 
+- [vscode-home-assistant](https://github.com/keesschollaart81/vscode-home-assistant) - Original VS Code extension (upstream)
 - [Home Assistant](https://www.home-assistant.io/) - Open source home automation platform
 - [YAML Language Server](https://github.com/redhat-developer/yaml-language-server) - Underlying YAML language support
 - [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) - Protocol specification
@@ -239,8 +291,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
 | Neovim       | ✅ Full       | [examples/nvim-lspconfig.lua](examples/nvim-lspconfig.lua) |
 | Emacs        | ✅ Full       | [Setup Guide](#emacs-lsp-mode)                             |
 | Vim          | ✅ Full       | [Setup Guide](#vim-vim-lsp)                                |
+| Helix        | ✅ Full       | [Setup Guide](#helix)                                      |
 | VS Code      | ✅ Compatible | Use generic LSP client                                     |
 | Sublime Text | ✅ Compatible | Use LSP package                                            |
+| Kate/KWrite  | ✅ Compatible | Built-in LSP support                                       |
 | Atom         | ✅ Compatible | Use atom-languageclient                                    |
 
 ---
