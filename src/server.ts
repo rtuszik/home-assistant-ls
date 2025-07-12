@@ -64,8 +64,8 @@ function loadConfiguration(): HomeAssistantLSConfig {
 const connection = createConnection(process.stdin, process.stdout);
 
 console.log = connection.console.log.bind(connection.console);
-console.warn = connection.window.showWarningMessage.bind(connection.window);
-console.error = connection.window.showErrorMessage.bind(connection.window);
+console.warn = connection.console.warn.bind(connection.console);
+console.error = connection.console.error.bind(connection.console);
 
 const documents = new TextDocuments(TextDocument);
 documents.listen(connection);
@@ -177,13 +177,15 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 
   // Setup handlers to notify client about connection status
   haConnection.onConnectionEstablished = (info) => {
-    console.log("Home Assistant connection established");
-    connection.sendNotification("ha_connected", info);
+    console.log(`Home Assistant connection established: ${info.name || 'Unknown'} v${info.version || 'Unknown'}`);
+    // Don't send custom notifications to generic LSP clients as they may cause errors
+    // connection.sendNotification("ha_connected", info);
   };
   
   haConnection.onConnectionFailed = (error) => {
-    console.log("Home Assistant connection failed");
-    connection.sendNotification("ha_connection_error", { error: error || "Unknown error" });
+    console.log(`Home Assistant connection failed: ${error || "Unknown error"}`);
+    // Don't send custom notifications to generic LSP clients as they may cause errors
+    // connection.sendNotification("ha_connection_error", { error: error || "Unknown error" });
   };
 
   documents.onDidChangeContent((e) =>
@@ -254,8 +256,9 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 
     // Check configuration status after update
     if (!configurationService.isConfigured) {
-      console.log("Configuration incomplete after update, sending no-config notification");
-      connection.sendNotification("no-config");
+      console.log("Configuration incomplete after update");
+      // Don't send custom notifications to generic LSP clients as they may cause errors
+      // connection.sendNotification("no-config");
     } else {
       console.log("Configuration is valid after update");
     }
@@ -277,12 +280,16 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
       "post",
       "config/core/check_config",
     );
-    connection.sendNotification("configuration_check_completed", result);
+    console.log("Configuration check completed");
+    // Return result instead of sending notification
+    return result;
   });
   
   connection.onRequest("getErrorLog", async (_) => {
     const result = await haConnection.callApi("get", "error_log");
-    connection.sendNotification("get_eror_log_completed", result);
+    console.log("Error log retrieved");
+    // Return result instead of sending notification
+    return result;
   });
   
   connection.onRequest("renderTemplate", async (args: { template: string }) => {
@@ -332,7 +339,9 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
       outputString += `Error:\n${errorMessage}`;
     }
 
-    connection.sendNotification("render_template_completed", outputString);
+    console.log("Template rendering completed");
+    // Return result instead of sending notification
+    return outputString;
   });
 
   // fire and forget

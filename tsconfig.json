@@ -27,7 +27,6 @@
     "node_modules",
     "dist",
     "**/*.test.ts",
-    "**/*.spec.ts",
-    "src/language-service/schemas/generateSchemas.ts"
+    "**/*.spec.ts"
   ]
 }

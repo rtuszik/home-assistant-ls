@@ -125,4 +125,3 @@ jobs:
               run: |
                   echo "✅ No changes detected in upstream language service components"
                   echo "The standalone language server is up to date with upstream"
-

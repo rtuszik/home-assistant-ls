@@ -1,10 +1,10 @@
 {
-    "name": "home-assistant-language-server",
-    "version": "0.0.1-alpha.1",
+    "name": "home-assistant-ls",
+    "version": "0.0.2-beta",
     "description": "Language Server for Home Assistant configuration files",
     "main": "dist/server.js",
     "bin": {
-        "home-assistant-language-server": "./bin/home-assistant-ls"
+        "home-assistant-language-server": "bin/home-assistant-ls"
     },
     "files": [
         "dist/**/*",
@@ -12,7 +12,7 @@
         "README.md"
     ],
     "scripts": {
-        "build": "tsc && cp src/language-service/schemas/mappings.json dist/language-service/schemas/",
+        "build": "tsc && mkdir -p dist/language-service/schemas/json && cp src/language-service/schemas/mappings.json dist/language-service/schemas/ && node dist/language-service/schemas/generateSchemas.js",
         "watch": "tsc --watch",
         "prepublishOnly": "npm run build"
     },

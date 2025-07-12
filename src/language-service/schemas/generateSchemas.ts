@@ -19,6 +19,9 @@ const filecontents = fs.readFileSync(jsonPath, "utf-8");
 
 const outputFolder = path.join(__dirname, "json");
 
+// Get the source directory path (we're running from dist, need to get to src)
+const srcDir = path.join(__dirname, "../../../src/language-service/schemas");
+
 if (!fs.existsSync(outputFolder)) {
   fs.mkdirSync(outputFolder);
 }
@@ -33,7 +36,7 @@ if (fs.readdirSync(outputFolder).length > 0 && process.argv[2] === "--quick") {
   pathToSchemaMappings.forEach((mapping) => {
     console.log(mapping.path);
     const program = TJS.getProgramFromFiles(
-      [resolve(path.join(__dirname, mapping.tsFile))],
+      [resolve(path.join(srcDir, mapping.tsFile))],
       compilerOptions,
     );
     const schema = TJS.generateSchema(program, mapping.fromType, settings);

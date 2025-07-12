@@ -79,8 +79,8 @@ function loadConfiguration() {
 // Create LSP connection using stdio
 const connection = (0, node_1.createConnection)(process.stdin, process.stdout);
 console.log = connection.console.log.bind(connection.console);
-console.warn = connection.window.showWarningMessage.bind(connection.window);
-console.error = connection.window.showErrorMessage.bind(connection.window);
+console.warn = connection.console.warn.bind(connection.console);
+console.error = connection.console.error.bind(connection.console);
 const documents = new node_1.TextDocuments(vscode_languageserver_textdocument_1.TextDocument);
 documents.listen(connection);
 connection.onInitialize((params) => {
@@ -162,12 +162,14 @@ connection.onInitialize((params) => {
     }, configurationService);
     // Setup handlers to notify client about connection status
     haConnection.onConnectionEstablished = (info) => {
-        console.log("Home Assistant connection established");
-        connection.sendNotification("ha_connected", info);
+        console.log(`Home Assistant connection established: ${info.name || 'Unknown'} v${info.version || 'Unknown'}`);
+        // Don't send custom notifications to generic LSP clients as they may cause errors
+        // connection.sendNotification("ha_connected", info);
     };
     haConnection.onConnectionFailed = (error) => {
-        console.log("Home Assistant connection failed");
-        connection.sendNotification("ha_connection_error", { error: error || "Unknown error" });
+        console.log(`Home Assistant connection failed: ${error || "Unknown error"}`);
+        // Don't send custom notifications to generic LSP clients as they may cause errors
+        // connection.sendNotification("ha_connection_error", { error: error || "Unknown error" });
     };
     documents.onDidChangeContent((e) => homeAsisstantLanguageService.onDocumentChange(e.document));
     documents.onDidOpen((e) => homeAsisstantLanguageService.onDocumentOpen(e.document));
@@ -220,8 +222,9 @@ connection.onInitialize((params) => {
         await haConnection.notifyConfigUpdate();
         // Check configuration status after update
         if (!configurationService.isConfigured) {
-            console.log("Configuration incomplete after update, sending no-config notification");
-            connection.sendNotification("no-config");
+            console.log("Configuration incomplete after update");
+            // Don't send custom notifications to generic LSP clients as they may cause errors
+            // connection.sendNotification("no-config");
         }
         else {
             console.log("Configuration is valid after update");
@@ -232,11 +235,15 @@ connection.onInitialize((params) => {
     });
     connection.onRequest("checkConfig", async (_) => {
         const result = await haConnection.callApi("post", "config/core/check_config");
-        connection.sendNotification("configuration_check_completed", result);
+        console.log("Configuration check completed");
+        // Return result instead of sending notification
+        return result;
     });
     connection.onRequest("getErrorLog", async (_) => {
         const result = await haConnection.callApi("get", "error_log");
-        connection.sendNotification("get_eror_log_completed", result);
+        console.log("Error log retrieved");
+        // Return result instead of sending notification
+        return result;
     });
     connection.onRequest("renderTemplate", async (args) => {
         const timePrefix = `[${new Date().toLocaleTimeString()}] `;
@@ -289,7 +296,9 @@ connection.onInitialize((params) => {
             }
             outputString += `Error:\n${errorMessage}`;
         }
-        connection.sendNotification("render_template_completed", outputString);
+        console.log("Template rendering completed");
+        // Return result instead of sending notification
+        return outputString;
     });
     // fire and forget
     setTimeout(discoverFilesAndUpdateSchemas, 0);
