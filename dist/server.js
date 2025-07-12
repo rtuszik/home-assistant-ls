@@ -76,7 +76,8 @@ function loadConfiguration() {
     }
     return config;
 }
-const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all, undefined, undefined);
+// Create LSP connection using stdio
+const connection = (0, node_1.createConnection)(process.stdin, process.stdout);
 console.log = connection.console.log.bind(connection.console);
 console.warn = connection.window.showWarningMessage.bind(connection.window);
 console.error = connection.window.showErrorMessage.bind(connection.window);

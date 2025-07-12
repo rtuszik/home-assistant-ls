@@ -73,8 +73,8 @@ jobs:
               if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
               id: upstream_info
               run: |
-                  UPSTREAM_COMMIT=$(git rev-parse upstream/main)
-                  UPSTREAM_COMMIT_MSG=$(git log --format=%s -n 1 upstream/main)
+                  UPSTREAM_COMMIT=$(git rev-parse upstream/dev)
+                  UPSTREAM_COMMIT_MSG=$(git log --format=%s -n 1 upstream/dev)
                   echo "commit=$UPSTREAM_COMMIT" >> $GITHUB_OUTPUT
                   echo "commit_msg=$UPSTREAM_COMMIT_MSG" >> $GITHUB_OUTPUT
 

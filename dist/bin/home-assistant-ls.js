@@ -40,12 +40,8 @@ const serverPath = path.join(__dirname, "..", "server.js");
 // Parse command line arguments
 const args = process.argv.slice(2);
 const stdio = args.includes("--stdio");
-if (stdio || args.length === 0) {
-    // Default to stdio mode for LSP communication
-    // Import and start the server directly
-    require("../server");
-}
-else {
+const help = args.includes("--help") || args.includes("-h");
+if (help) {
     console.log("Home Assistant Language Server");
     console.log("");
     console.log("Usage:");
@@ -66,5 +62,10 @@ else {
     console.log('    "homeAssistantToken": "your_long_lived_access_token",');
     console.log('    "ignoreCertificates": false');
     console.log("  }");
+}
+else {
+    // Default to stdio mode for LSP communication
+    // Import and start the server directly
+    require("../server");
 }
 //# sourceMappingURL=home-assistant-ls.js.map

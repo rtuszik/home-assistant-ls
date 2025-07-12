@@ -2,7 +2,7 @@
 set -e
 
 UPSTREAM_REMOTE="upstream"
-UPSTREAM_BRANCH="main"
+UPSTREAM_BRANCH="dev"
 TEMP_BRANCH="temp-sync-$(date +%s)"
 
 # Sync paths (only language service components)

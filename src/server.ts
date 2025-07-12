@@ -60,7 +60,8 @@ function loadConfiguration(): HomeAssistantLSConfig {
   return config;
 }
 
-const connection = createConnection(ProposedFeatures.all, undefined, undefined);
+// Create LSP connection using stdio
+const connection = createConnection(process.stdin, process.stdout);
 
 console.log = connection.console.log.bind(connection.console);
 console.warn = connection.window.showWarningMessage.bind(connection.window);
