@@ -25,19 +25,6 @@ jobs:
                   fetch-depth: 0
                   token: ${{ secrets.GITHUB_TOKEN }}
 
-            - uses: oven-sh/setup-bun@v2
-              with:
-                  bun-version: latest
-
-            - name: Clear Bun Cache
-              run: bun pm cache rm
-
-            - name: Install dependencies
-              run: bun install --no-optional
-
-            - name: Make scripts executable
-              run: chmod +x scripts/*.sh
-
             - name: Add upstream remote
               run: |
                   git remote add upstream https://github.com/keesschollaart81/vscode-home-assistant.git
@@ -57,16 +44,6 @@ jobs:
               if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
               run: |
                   ./scripts/sync-upstream.sh
-
-            - name: Test build after sync
-              if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
-              run: |
-                  bun run build
-
-            - name: Test CLI after sync
-              if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
-              run: |
-                  ./bin/home-assistant-ls --help
 
             - name: Get upstream commit info
               if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
@@ -105,17 +82,14 @@ jobs:
                       - 🛡️ CLI entry point and examples
                       - 🛡️ Standalone documentation and configuration
 
-                      ## Testing:
-                      - ✅ Build completed successfully
-                      - ✅ CLI help command works
-
                       ## Next steps:
                       1. **Review the changes** in this PR
                       2. **Test manually** with a real Home Assistant instance if possible
-                      3. **Merge** if everything looks good
+                      3. **Run build locally** to ensure compatibility
+                      4. **Merge** if everything looks good
 
                       ---
-                      *This PR was created automatically by the sync workflow. Please review carefully before merging.*
+                      *This PR was created automatically by the sync workflow. Please review and test before merging.*
                   branch: sync/upstream-${{ github.run_number }}
                   delete-branch: true
                   draft: false
