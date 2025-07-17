@@ -2,10 +2,8 @@ name: Sync with Upstream VS Code Extension
 
 on:
     schedule:
-        # Run weekly on Monday at 2 AM UTC
         - cron: "0 2 * * 1"
     workflow_dispatch:
-        # Allow manual triggering
         inputs:
             force_sync:
                 description: "Force sync even if no changes detected"
@@ -27,13 +25,12 @@ jobs:
                   fetch-depth: 0
                   token: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Setup Bun
-              uses: oven-sh/setup-bun@v1
+            - uses: oven-sh/setup-bun@v2
               with:
                   bun-version: latest
 
             - name: Install dependencies
-              run: bun install
+              run: bun install --no-optional
 
             - name: Make scripts executable
               run: chmod +x scripts/*.sh
