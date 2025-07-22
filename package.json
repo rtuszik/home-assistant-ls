@@ -45,7 +45,7 @@
         "yaml-language-server": "1.18.0"
     },
     "devDependencies": {
-        "@types/node": "24.0.12",
+        "@types/node": "24.1.0",
         "@types/uuid": "^10.0.0",
         "@types/ws": "8.18.1",
         "typescript": "^5.8.3",
