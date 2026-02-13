@@ -40,7 +40,7 @@
         "vscode-languageserver-protocol": "3.17.5",
         "vscode-languageserver-textdocument": "^1.0.12",
         "vscode-uri": "3.1.0",
-        "ws": "8.18.3",
+        "ws": "8.19.0",
         "yaml": "2.8.0",
         "yaml-language-server": "1.18.0"
     },
