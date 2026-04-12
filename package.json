@@ -32,7 +32,7 @@
         "url": ""
     },
     "dependencies": {
-        "axios": "^1.10.0",
+        "axios": "^1.15.0",
         "home-assistant-js-websocket": "^9.5.0",
         "uuid": "^11.1.0",
         "vscode-json-languageservice": "^5.6.1",
