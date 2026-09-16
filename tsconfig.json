@@ -26,6 +26,10 @@
   "exclude": [
     "node_modules",
     "dist",
+    "src/language-service/dist",
+    "src/language-service/node_modules",
+    "src/language-service/package.json",
+    "src/language-service/package-lock.json",
     "**/*.test.ts",
     "**/*.spec.ts"
   ]

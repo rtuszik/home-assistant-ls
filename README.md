@@ -15,7 +15,7 @@ Language Server Protocol (LSP) implementation for Home Assistant configuration f
 ## Installation
 
 ```bash
-npm install -g home-assistant-ls
+aube install -g home-assistant-ls
 ```
 
 ## Configuration
@@ -87,15 +87,15 @@ The language server automatically activates when you open YAML files in director
 ```bash
 git clone https://github.com/rtuszik/home-assistant-ls
 cd home-assistant-ls
-npm install && npm run build
+aube install && aube run build
 ```
 
 ## Sync Strategy
 
 Auto-synced with upstream [vscode-home-assistant](https://github.com/keesschollaart81/vscode-home-assistant):
 
-- **Automated sync**: GitHub Actions runs weekly to detect upstream changes
-- **Preserved customizations**: Standalone server features remain intact
+- **Automated sync**: GitHub Actions runs monthly and opens a PR when the vendored language service changed upstream (only if build + smoke test pass)
+- **Preserved customizations**: the standalone server (`src/server.ts`, `src/fileAccessor.ts`, CLI) is fork-owned and never touched by syncs, see [SYNC_STRATEGY.md](SYNC_STRATEGY.md)
 
 ## Contributing
 

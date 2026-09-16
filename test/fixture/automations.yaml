@@ -1,0 +1,9 @@
+# "triggerz" is intentionally wrong: the smoke test expects a schema
+# diagnostic for it, which proves file discovery, !include resolution and
+# schema validation all work end-to-end.
+- alias: Test automation
+  triggerz:
+    - platform: state
+      entity_id: sun.sun
+  action:
+    - service: light.turn_on
