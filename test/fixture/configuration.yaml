@@ -1,0 +1,11 @@
+homeassistant:
+  name: Test Home
+  unit_system: metric
+
+automation: !include automations.yaml
+
+sensor:
+  - platform: template
+    sensors:
+      test_sensor:
+        value_template: "{{ 1 }}"

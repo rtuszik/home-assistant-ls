@@ -12,9 +12,11 @@
         "README.md"
     ],
     "scripts": {
-        "build": "tsc && mkdir -p dist/language-service/schemas/json && cp src/language-service/schemas/mappings.json dist/language-service/schemas/ && node dist/language-service/schemas/generateSchemas.js",
+        "build": "rm -rf dist && tsc -p ./ && ts-node src/language-service/src/schemas/generateSchemas.ts && mkdir -p dist/language-service/src/schemas && cp src/language-service/src/schemas/mappings.json dist/language-service/src/schemas/ && cp -R src/language-service/src/schemas/json dist/language-service/src/schemas/",
+        "schema": "ts-node src/language-service/src/schemas/generateSchemas.ts",
         "watch": "tsc --watch",
-        "prepublishOnly": "npm run build"
+        "test": "node test/file-accessor.js && node test/lsp-smoke.js",
+        "prepublishOnly": "aube run build"
     },
     "keywords": [
         "home-assistant",
@@ -32,9 +34,10 @@
         "url": ""
     },
     "dependencies": {
+        "@vscode/l10n": "^0.0.18",
         "axios": "^1.10.0",
         "home-assistant-js-websocket": "^9.5.0",
-        "uuid": "^11.1.0",
+        "uuid": "^13.0.0",
         "vscode-json-languageservice": "^5.6.1",
         "vscode-languageserver": "^9.0.1",
         "vscode-languageserver-protocol": "3.17.5",
@@ -42,14 +45,15 @@
         "vscode-uri": "3.1.0",
         "ws": "8.18.3",
         "yaml": "2.8.0",
-        "yaml-language-server": "1.18.0"
+        "yaml-language-server": "1.19.2"
     },
     "devDependencies": {
-        "@types/node": "24.0.12",
-        "@types/uuid": "^10.0.0",
+        "@types/node": "24.10.1",
+        "@types/uuid": "^11.0.0",
         "@types/ws": "8.18.1",
-        "typescript": "^5.8.3",
-        "typescript-json-schema": "0.65.1"
+        "ts-node": "10.9.2",
+        "typescript": "5.9.3",
+        "typescript-json-schema": "0.67.0"
     },
     "engines": {
         "node": ">=18.0.0"

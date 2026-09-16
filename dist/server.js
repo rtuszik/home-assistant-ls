@@ -36,18 +36,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_1 = require("vscode-languageserver/node");
 const vscode_languageserver_textdocument_1 = require("vscode-languageserver-textdocument");
 const yamlLanguageService_1 = require("yaml-language-server/out/server/src/languageservice/yamlLanguageService");
-const haConnection_1 = require("./language-service/home-assistant/haConnection");
-const configuration_1 = require("./language-service/configuration");
-const haConfig_1 = require("./language-service/haConfig/haConfig");
-const haLanguageService_1 = require("./language-service/haLanguageService");
-const schemaService_1 = require("./language-service/schemas/schemaService");
-const includes_1 = require("./language-service/definition/includes");
-const scripts_1 = require("./language-service/definition/scripts");
-const secrets_1 = require("./language-service/definition/secrets");
+const haConnection_1 = require("./language-service/src/home-assistant/haConnection");
+const configuration_1 = require("./language-service/src/configuration");
+const haConfig_1 = require("./language-service/src/haConfig/haConfig");
+const haLanguageService_1 = require("./language-service/src/haLanguageService");
+const schemaService_1 = require("./language-service/src/schemas/schemaService");
+const includes_1 = require("./language-service/src/definition/includes");
+const scripts_1 = require("./language-service/src/definition/scripts");
+const secrets_1 = require("./language-service/src/definition/secrets");
 const fileAccessor_1 = require("./fileAccessor");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const os = __importStar(require("os"));
+const vscodeUri = __importStar(require("vscode-uri"));
+const l10n = __importStar(require("@vscode/l10n"));
+// yaml-language-server >= 1.19 emits diagnostic messages through @vscode/l10n
+// keys; without a bundle loaded the raw keys (e.g. "DisallowedExtraPropWarning")
+// leak into diagnostics. Load its English bundle up front.
+try {
+    l10n.config({
+        fsPath: require.resolve("yaml-language-server/l10n/bundle.l10n.json"),
+    });
+}
+catch (e) {
+    console.warn(`Could not load yaml-language-server l10n bundle: ${e}`);
+}
 // Load configuration from environment variables and config file
 function loadConfiguration() {
     const config = {};
@@ -83,7 +96,7 @@ console.warn = connection.console.warn.bind(connection.console);
 console.error = connection.console.error.bind(connection.console);
 const documents = new node_1.TextDocuments(vscode_languageserver_textdocument_1.TextDocument);
 documents.listen(connection);
-connection.onInitialize((params) => {
+connection.onInitialize(async (params) => {
     connection.console.log(`[Home Assistant Language Server(${process.pid})] Started and initialize received`);
     // Load configuration
     const config = loadConfiguration();
@@ -119,8 +132,10 @@ connection.onInitialize((params) => {
     console.log(`Configuration loaded: URL=${config.homeAssistantUrl ? "configured" : "not configured"}, Token=${config.homeAssistantToken ? "configured" : "not configured"}`);
     const configurationService = new configuration_1.ConfigurationService();
     const haConnection = new haConnection_1.HaConnection(configurationService);
-    // Get workspace folder from params
-    const workspaceFolder = params.rootUri || params.workspaceFolders?.[0]?.uri || process.cwd();
+    // Get workspace folder from params (must be a URI)
+    const workspaceFolder = params.rootUri ||
+        params.workspaceFolders?.[0]?.uri ||
+        vscodeUri.URI.file(process.cwd()).toString();
     const fileAccessor = new fileAccessor_1.StandaloneFileAccessor(workspaceFolder, documents);
     const haConfigInstance = new haConfig_1.HomeAssistantConfiguration(fileAccessor);
     const definitionProviders = [
@@ -147,18 +162,18 @@ connection.onInitialize((params) => {
         try {
             console.log("Discovering files and updating schemas...");
             await haConfigInstance.discoverFiles();
-            homeAsisstantLanguageService.findAndApplySchemas();
+            await homeAsisstantLanguageService.findAndApplySchemas();
             console.log("Files discovered and schemas updated successfully");
         }
         catch (e) {
             console.error(`Unexpected error during file discovery / schema configuration: ${e}`);
         }
     };
-    const homeAsisstantLanguageService = new haLanguageService_1.HomeAssistantLanguageService(yamlLanguageService, haConfigInstance, haConnection, definitionProviders, new schemaService_1.SchemaServiceForIncludes(), sendDiagnostics, () => {
-        documents.all().forEach(async (d) => {
+    const homeAsisstantLanguageService = new haLanguageService_1.HomeAssistantLanguageService(yamlLanguageService, haConfigInstance, haConnection, definitionProviders, await schemaService_1.SchemaServiceForIncludes.create(), sendDiagnostics, async () => {
+        for (const d of documents.all()) {
             const diagnostics = await homeAsisstantLanguageService.getDiagnostics(d);
             sendDiagnostics(d.uri, diagnostics);
-        });
+        }
     }, configurationService);
     // Setup handlers to notify client about connection status
     haConnection.onConnectionEstablished = (info) => {
@@ -171,12 +186,39 @@ connection.onInitialize((params) => {
         // Don't send custom notifications to generic LSP clients as they may cause errors
         // connection.sendNotification("ha_connection_error", { error: error || "Unknown error" });
     };
-    documents.onDidChangeContent((e) => homeAsisstantLanguageService.onDocumentChange(e.document));
-    documents.onDidOpen((e) => homeAsisstantLanguageService.onDocumentOpen(e.document));
+    let initialDiscovery = Promise.resolve();
+    documents.onDidChangeContent(async (e) => {
+        await initialDiscovery;
+        homeAsisstantLanguageService.onDocumentChange(e.document);
+    });
+    documents.onDidOpen(async (e) => {
+        await initialDiscovery;
+        await homeAsisstantLanguageService.onDocumentOpen(e.document);
+    });
+    documents.onDidClose((e) => {
+        // Remove closed documents from file collection to prevent memory leaks
+        haConfigInstance.removeFile(e.document.uri);
+    });
     let onDidSaveDebounce;
-    documents.onDidSave(() => {
+    documents.onDidSave((e) => {
         clearTimeout(onDidSaveDebounce);
-        onDidSaveDebounce = setTimeout(discoverFilesAndUpdateSchemas, 100);
+        // Only rediscover files if the saved document is likely to contain includes
+        // or is a root configuration file. This significantly improves performance
+        // for large Home Assistant configurations.
+        const uri = e.document.uri;
+        const isRootConfigFile = uri.endsWith("configuration.yaml") ||
+            uri.endsWith("ui-lovelace.yaml") ||
+            uri.endsWith("automations.yaml");
+        const isInBlueprintsFolder = uri.includes("/blueprints/") ||
+            uri.includes("\\blueprints\\");
+        // Check if the document content contains include directives
+        const hasIncludes = e.document.getText().match(/!include(_dir_list|_dir_named|_dir_merge_list|_dir_merge_named)?/);
+        // Only trigger rediscovery for files that could affect the schema
+        if (isRootConfigFile || isInBlueprintsFolder || hasIncludes) {
+            // Use a longer debounce timeout to reduce unnecessary rediscoveries
+            // This helps when users save multiple files in quick succession
+            onDidSaveDebounce = setTimeout(discoverFilesAndUpdateSchemas, 1000);
+        }
     });
     connection.onDocumentSymbol((p) => {
         const document = documents.get(p.textDocument.uri);
@@ -300,8 +342,9 @@ connection.onInitialize((params) => {
         // Return result instead of sending notification
         return outputString;
     });
-    // fire and forget
-    setTimeout(discoverFilesAndUpdateSchemas, 0);
+    // Start discovery without delaying initialize, but ensure document events do
+    // not race the initial file index and schema setup.
+    initialDiscovery = discoverFilesAndUpdateSchemas();
     return {
         capabilities: {
             textDocumentSync: node_1.TextDocumentSyncKind.Full,

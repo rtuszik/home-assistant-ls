@@ -1,8 +1,8 @@
-name: Sync with Upstream VS Code Extension
+name: Sync with upstream vscode-home-assistant
 
 on:
     schedule:
-        - cron: "0 2 * * 1"
+        - cron: "0 3 1 * *" # monthly, 1st at 03:00 UTC
     workflow_dispatch:
         inputs:
             force_sync:
@@ -23,7 +23,6 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
-                  token: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Add upstream remote
               run: |
@@ -37,13 +36,32 @@ jobs:
 
             - name: Check for upstream changes
               id: changes
-              run: |
-                  ./scripts/check-upstream-changes.sh
+              run: ./scripts/check-upstream-changes.sh
 
             - name: Sync changes
               if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
+              run: ./scripts/sync-upstream.sh
+
+            - name: Setup Node.js
+              if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+
+            - name: Setup Aube
+              if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
+              uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+            # The PR is only created if the synced code actually builds and
+            # passes the LSP smoke test. A red run here means the sync needs
+            # manual attention - that is intentional.
+            - name: Build and test
+              if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
               run: |
-                  ./scripts/sync-upstream.sh
+                  aube install
+                  aube run build
+                  aube test
+                  ./bin/home-assistant-ls --help
 
             - name: Get upstream commit info
               if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
@@ -56,46 +74,25 @@ jobs:
 
             - name: Create Pull Request
               if: steps.changes.outputs.has_changes == 'true' || github.event.inputs.force_sync == 'true'
-              uses: peter-evans/create-pull-request@v5
+              uses: peter-evans/create-pull-request@v7
               with:
                   token: ${{ secrets.GITHUB_TOKEN }}
-                  title: "sync: Update from upstream VS Code extension"
+                  title: "sync: update language-service from upstream"
+                  commit-message: "sync: update language-service from upstream"
                   body: |
-                      🔄 **Automated sync from upstream vscode-home-assistant extension**
+                      Automated verbatim sync of `src/language-service/` from upstream
+                      [vscode-home-assistant](https://github.com/keesschollaart81/vscode-home-assistant).
 
                       **Upstream commit:** [`${{ steps.upstream_info.outputs.commit }}`](https://github.com/keesschollaart81/vscode-home-assistant/commit/${{ steps.upstream_info.outputs.commit }})
                       **Commit message:** ${{ steps.upstream_info.outputs.commit_msg }}
 
-                      ## Changes detected in:
-                      ```
-                      ${{ steps.changes.outputs.changed_files }}
-                      ```
-
-                      ## What was synced:
-                      - ✅ Language service components (`src/language-service/`)
-                      - ✅ Schema definitions and completion helpers
-                      - ✅ Home Assistant connection logic
-
-                      ## What was preserved:
-                      - 🛡️ Standalone server implementation (`src/server.ts`)
-                      - 🛡️ Node.js file accessor (`src/fileAccessor.ts`)
-                      - 🛡️ CLI entry point and examples
-                      - 🛡️ Standalone documentation and configuration
-
-                      ## Next steps:
-                      1. **Review the changes** in this PR
-                      2. **Test manually** with a real Home Assistant instance if possible
-                      3. **Run build locally** to ensure compatibility
-                      4. **Merge** if everything looks good
-
-                      ---
-                      *This PR was created automatically by the sync workflow. Please review and test before merging.*
-                  branch: sync/upstream-${{ github.run_number }}
+                      The build and LSP smoke test passed in the sync workflow.
+                      Check the upstream diff for API changes to `src/server.ts` /
+                      `src/fileAccessor.ts` (e.g. changes under upstream's `src/server/`),
+                      then merge.
+                  branch: sync/upstream
                   delete-branch: true
-                  draft: false
 
-            - name: Comment on no changes
+            - name: No changes
               if: steps.changes.outputs.has_changes != 'true' && github.event.inputs.force_sync != 'true'
-              run: |
-                  echo "✅ No changes detected in upstream language service components"
-                  echo "The standalone language server is up to date with upstream"
+              run: echo "✅ No upstream changes in src/language-service"

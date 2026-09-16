@@ -10,18 +10,31 @@ import {
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getLanguageService } from "yaml-language-server/out/server/src/languageservice/yamlLanguageService";
-import { HaConnection } from "./language-service/home-assistant/haConnection";
-import { ConfigurationService } from "./language-service/configuration";
-import { HomeAssistantConfiguration } from "./language-service/haConfig/haConfig";
-import { HomeAssistantLanguageService } from "./language-service/haLanguageService";
-import { SchemaServiceForIncludes } from "./language-service/schemas/schemaService";
-import { IncludeDefinitionProvider } from "./language-service/definition/includes";
-import { ScriptDefinitionProvider } from "./language-service/definition/scripts";
-import { SecretsDefinitionProvider } from "./language-service/definition/secrets";
+import { HaConnection } from "./language-service/src/home-assistant/haConnection";
+import { ConfigurationService } from "./language-service/src/configuration";
+import { HomeAssistantConfiguration } from "./language-service/src/haConfig/haConfig";
+import { HomeAssistantLanguageService } from "./language-service/src/haLanguageService";
+import { SchemaServiceForIncludes } from "./language-service/src/schemas/schemaService";
+import { IncludeDefinitionProvider } from "./language-service/src/definition/includes";
+import { ScriptDefinitionProvider } from "./language-service/src/definition/scripts";
+import { SecretsDefinitionProvider } from "./language-service/src/definition/secrets";
 import { StandaloneFileAccessor } from "./fileAccessor";
 import * as path from "path";
 import * as fs from "fs";
 import * as os from "os";
+import * as vscodeUri from "vscode-uri";
+import * as l10n from "@vscode/l10n";
+
+// yaml-language-server >= 1.19 emits diagnostic messages through @vscode/l10n
+// keys; without a bundle loaded the raw keys (e.g. "DisallowedExtraPropWarning")
+// leak into diagnostics. Load its English bundle up front.
+try {
+  l10n.config({
+    fsPath: require.resolve("yaml-language-server/l10n/bundle.l10n.json"),
+  });
+} catch (e) {
+  console.warn(`Could not load yaml-language-server l10n bundle: ${e}`);
+}
 
 interface HomeAssistantLSConfig {
   homeAssistantUrl?: string;
@@ -70,7 +83,7 @@ console.error = connection.console.error.bind(connection.console);
 const documents = new TextDocuments(TextDocument);
 documents.listen(connection);
 
-connection.onInitialize((params: InitializeParams): InitializeResult => {
+connection.onInitialize(async (params: InitializeParams): Promise<InitializeResult> => {
   connection.console.log(
     `[Home Assistant Language Server(${process.pid})] Started and initialize received`,
   );
@@ -117,8 +130,11 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
   const configurationService = new ConfigurationService();
   const haConnection = new HaConnection(configurationService);
   
-  // Get workspace folder from params
-  const workspaceFolder = params.rootUri || params.workspaceFolders?.[0]?.uri || process.cwd();
+  // Get workspace folder from params (must be a URI)
+  const workspaceFolder =
+    params.rootUri ||
+    params.workspaceFolders?.[0]?.uri ||
+    vscodeUri.URI.file(process.cwd()).toString();
   const fileAccessor = new StandaloneFileAccessor(workspaceFolder, documents);
   const haConfigInstance = new HomeAssistantConfiguration(fileAccessor);
 
@@ -149,7 +165,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
     try {
       console.log("Discovering files and updating schemas...");
       await haConfigInstance.discoverFiles();
-      homeAsisstantLanguageService.findAndApplySchemas();
+      await homeAsisstantLanguageService.findAndApplySchemas();
       console.log("Files discovered and schemas updated successfully");
     } catch (e) {
       console.error(
@@ -163,14 +179,14 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
     haConfigInstance,
     haConnection,
     definitionProviders,
-    new SchemaServiceForIncludes(),
+    await SchemaServiceForIncludes.create(),
     sendDiagnostics,
-    () => {
-      documents.all().forEach(async (d) => {
+    async () => {
+      for (const d of documents.all()) {
         const diagnostics =
           await homeAsisstantLanguageService.getDiagnostics(d);
         sendDiagnostics(d.uri, diagnostics);
-      });
+      }
     },
     configurationService,
   );
@@ -188,17 +204,44 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
     // connection.sendNotification("ha_connection_error", { error: error || "Unknown error" });
   };
 
-  documents.onDidChangeContent((e) =>
-    homeAsisstantLanguageService.onDocumentChange(e.document),
-  );
-  documents.onDidOpen((e) =>
-    homeAsisstantLanguageService.onDocumentOpen(e.document),
-  );
+  let initialDiscovery = Promise.resolve();
+
+  documents.onDidChangeContent(async (e) => {
+    await initialDiscovery;
+    homeAsisstantLanguageService.onDocumentChange(e.document);
+  });
+  documents.onDidOpen(async (e) => {
+    await initialDiscovery;
+    await homeAsisstantLanguageService.onDocumentOpen(e.document);
+  });
+  documents.onDidClose((e) => {
+    // Remove closed documents from file collection to prevent memory leaks
+    haConfigInstance.removeFile(e.document.uri);
+  });
 
   let onDidSaveDebounce: NodeJS.Timeout;
-  documents.onDidSave(() => {
+  documents.onDidSave((e) => {
     clearTimeout(onDidSaveDebounce);
-    onDidSaveDebounce = setTimeout(discoverFilesAndUpdateSchemas, 100);
+
+    // Only rediscover files if the saved document is likely to contain includes
+    // or is a root configuration file. This significantly improves performance
+    // for large Home Assistant configurations.
+    const uri = e.document.uri;
+    const isRootConfigFile = uri.endsWith("configuration.yaml") ||
+                             uri.endsWith("ui-lovelace.yaml") ||
+                             uri.endsWith("automations.yaml");
+    const isInBlueprintsFolder = uri.includes("/blueprints/") ||
+                                 uri.includes("\\blueprints\\");
+
+    // Check if the document content contains include directives
+    const hasIncludes = e.document.getText().match(/!include(_dir_list|_dir_named|_dir_merge_list|_dir_merge_named)?/);
+
+    // Only trigger rediscovery for files that could affect the schema
+    if (isRootConfigFile || isInBlueprintsFolder || hasIncludes) {
+      // Use a longer debounce timeout to reduce unnecessary rediscoveries
+      // This helps when users save multiple files in quick succession
+      onDidSaveDebounce = setTimeout(discoverFilesAndUpdateSchemas, 1000);
+    }
   });
 
   connection.onDocumentSymbol((p) => {
@@ -344,8 +387,9 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
     return outputString;
   });
 
-  // fire and forget
-  setTimeout(discoverFilesAndUpdateSchemas, 0);
+  // Start discovery without delaying initialize, but ensure document events do
+  // not race the initial file index and schema setup.
+  initialDiscovery = discoverFilesAndUpdateSchemas();
 
   return {
     capabilities: {

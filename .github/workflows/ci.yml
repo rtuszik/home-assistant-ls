@@ -1,0 +1,31 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+jobs:
+    build-and-test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+
+            - name: Setup Aube
+              uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+            - name: Install dependencies
+              run: aube install
+
+            - name: Build
+              run: aube run build
+
+            - name: LSP smoke test
+              run: aube test
+
+            - name: CLI help
+              run: ./bin/home-assistant-ls --help
